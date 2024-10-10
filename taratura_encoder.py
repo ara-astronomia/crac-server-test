@@ -1,6 +1,7 @@
 from gpiozero import Button
 from time import sleep
 
+print("in attesa dell'azionamento manuale dei motori delle tende")
 # Definizione dei GPIO per i pulsanti di finecorsa
 curtain_W_verify_open = Button(5)  # pin 35 per finecorsa tenda Ovest aperta
 curtain_W_verify_closed = Button(6)  # pin 37 per finecorsa tenda Ovest chiusa
