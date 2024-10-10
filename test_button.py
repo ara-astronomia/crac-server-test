@@ -1,5 +1,6 @@
 from gpiozero import Button
 
+print("in attessa dell'azionamento di uno degli switch di fine corsa delle tende")
 # Definizione dei GPIO per i pulsanti
 curtain_W_verify_open = Button(5)  # pin 35 per finecorsa tenda Ovest aperta
 curtain_W_verify_closed = Button(6)  # pin 37 per finecorsa tenda Ovest chiusa
