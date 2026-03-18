@@ -190,8 +190,6 @@ def roof_open():
         return
     print("[TETTO] Apertura in corso...")
     roof_switch.on()
-    sleep(1)
-    roof_switch.off()
     elapsed = 0
     while not roof_verify_open.is_pressed and elapsed < ROOF_TIMEOUT_OPEN:
         sleep(1)
@@ -210,8 +208,6 @@ def roof_close():
         print("[TETTO] ⚠️  BLOCCO — tende non chiuse! Impossibile chiudere il tetto.")
         return
     print("[TETTO] Chiusura in corso...")
-    roof_switch.on()
-    sleep(1)
     roof_switch.off()
     elapsed = 0
     while not roof_verify_closed.is_pressed and elapsed < ROOF_TIMEOUT_CLOSE:
