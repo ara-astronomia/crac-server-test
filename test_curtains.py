@@ -155,7 +155,7 @@ def test_motor():
             print("Direzione non valida.")
             continue
 
-        enable.on()
+        #enable.on()
         if verso == 'f':
             motor.forward()
         else:
