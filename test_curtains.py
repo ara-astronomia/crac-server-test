@@ -169,102 +169,98 @@ def test_motor():
         print(f"[{modulo}] Test completato.")
 
 # =============================================================================
-# TEST TETTO
-# =============================================================================
-def test_roof():
-    while True:
-        print("\n=== TEST TETTO ===")
-        print(f"  Stato tetto chiuso : {roof_verify_closed.is_pressed}")
-        print(f"  Stato tetto aperto : {roof_verify_open.is_pressed}")
-        print(f"  Tende Est chiusa   : {curtain_E_verify_closed.is_pressed}")
-        print(f"  Tende Ovest chiusa : {curtain_W_verify_closed.is_pressed}")
-
-        azione = input("\nAzione (A=apri, C=chiudi, R=torna): ").upper()
-        if azione == 'R':
-            break
-
-        if azione == 'A':
-            if roof_verify_open.is_pressed:
-                print("[TETTO] Il tetto è già aperto.")
-                continue
-            print("[TETTO] Apertura in corso...")
-            roof_switch.on()
-            sleep(1)
-            roof_switch.off()
-            # Attendi apertura con timeout
-            timeout = 50
-            elapsed = 0
-            while not roof_verify_open.is_pressed and elapsed < timeout:
-                sleep(1)
-                elapsed += 1
-                print(f"[TETTO] Attendo apertura... ({elapsed}s)")
-            if roof_verify_open.is_pressed:
-                print("[TETTO] Tetto aperto.")
-            else:
-                print("[TETTO] TIMEOUT — tetto non ha raggiunto la posizione aperta!")
-
-        elif azione == 'C':
-            if roof_verify_closed.is_pressed:
-                print("[TETTO] Il tetto è già chiuso.")
-                continue
-            # Sicurezza tende
-            if not curtain_E_verify_closed.is_pressed or not curtain_W_verify_closed.is_pressed:
-                print("[TETTO] ⚠️  BLOCCO SICUREZZA — le tende non sono chiuse! Impossibile chiudere il tetto.")
-                continue
-            print("[TETTO] Chiusura in corso...")
-            roof_switch.on()
-            sleep(1)
-            roof_switch.off()
-            # Attendi chiusura con timeout
-            timeout = 90
-            elapsed = 0
-            while not roof_verify_closed.is_pressed and elapsed < timeout:
-                sleep(1)
-                elapsed += 1
-                print(f"[TETTO] Attendo chiusura... ({elapsed}s)")
-            if roof_verify_closed.is_pressed:
-                print("[TETTO] Tetto chiuso.")
-            else:
-                print("[TETTO] TIMEOUT — tetto non ha raggiunto la posizione chiusa!")
-        else:
-            print("Azione non valida.")
-
-# =============================================================================
 # MENU PRINCIPALE
 # =============================================================================
+ROOF_TIMEOUT_OPEN  = 50
+ROOF_TIMEOUT_CLOSE = 90
+
 def print_status():
-    print("\n=== STATO INIZIALE GPIO ===")
-    print(f"  [EST]   finecorsa chiusura : {curtain_E_verify_closed.is_pressed}")
-    print(f"  [EST]   finecorsa apertura : {curtain_E_verify_open.is_pressed}")
-    print(f"  [OVEST] finecorsa chiusura : {curtain_W_verify_closed.is_pressed}")
-    print(f"  [OVEST] finecorsa apertura : {curtain_W_verify_open.is_pressed}")
-    print(f"  [TETTO] chiuso             : {roof_verify_closed.is_pressed}")
-    print(f"  [TETTO] aperto             : {roof_verify_open.is_pressed}")
-    print("===========================\n")
+    print("\n=== STATO GPIO ===")
+    print(f"  [TETTO] chiuso  : {roof_verify_closed.is_pressed}")
+    print(f"  [TETTO] aperto  : {roof_verify_open.is_pressed}")
+    print(f"  [EST]   chiusa  : {curtain_E_verify_closed.is_pressed}")
+    print(f"  [EST]   aperta  : {curtain_E_verify_open.is_pressed}")
+    print(f"  [OVEST] chiusa  : {curtain_W_verify_closed.is_pressed}")
+    print(f"  [OVEST] aperta  : {curtain_W_verify_open.is_pressed}")
+    print("==================\n")
+
+def roof_open():
+    if roof_verify_open.is_pressed:
+        print("[TETTO] Già aperto.")
+        return
+    print("[TETTO] Apertura in corso...")
+    roof_switch.on()
+    sleep(1)
+    roof_switch.off()
+    elapsed = 0
+    while not roof_verify_open.is_pressed and elapsed < ROOF_TIMEOUT_OPEN:
+        sleep(1)
+        elapsed += 1
+        print(f"[TETTO] Attendo apertura... ({elapsed}s)")
+    if roof_verify_open.is_pressed:
+        print("[TETTO] ✓ Tetto aperto.")
+    else:
+        print("[TETTO] ✗ TIMEOUT — tetto non ha raggiunto la posizione aperta!")
+
+def roof_close():
+    if roof_verify_closed.is_pressed:
+        print("[TETTO] Già chiuso.")
+        return
+    if not curtain_E_verify_closed.is_pressed or not curtain_W_verify_closed.is_pressed:
+        print("[TETTO] ⚠️  BLOCCO — tende non chiuse! Impossibile chiudere il tetto.")
+        return
+    print("[TETTO] Chiusura in corso...")
+    roof_switch.on()
+    sleep(1)
+    roof_switch.off()
+    elapsed = 0
+    while not roof_verify_closed.is_pressed and elapsed < ROOF_TIMEOUT_CLOSE:
+        sleep(1)
+        elapsed += 1
+        print(f"[TETTO] Attendo chiusura... ({elapsed}s)")
+    if roof_verify_closed.is_pressed:
+        print("[TETTO] ✓ Tetto chiuso.")
+    else:
+        print("[TETTO] ✗ TIMEOUT — tetto non ha raggiunto la posizione chiusa!")
 
 def main():
     print_status()
     while True:
         print("\n=== MENU TEST CRAC ===")
-        print("  1 - Test motori tende")
-        print("  2 - Monitor finecorsa ed encoder (Ctrl+C per tornare)")
-        print("  3 - Test tetto")
+        print("  S - Stato GPIO")
+        print("  A - Apri tetto")
+        print("  C - Chiudi tetto  [sicurezza: tende devono essere chiuse]")
+        print("  M - Test motore tenda  [tetto deve essere aperto]")
+        print("  E - Monitor encoder e finecorsa  [Ctrl+C per tornare]")
         print("  Q - Esci")
-        scelta = input("Scelta: ").upper()
+        scelta = input("\nScelta: ").upper()
 
-        if scelta == '1':
-            test_motor()
-        elif scelta == '2':
+        if scelta == 'S':
+            print_status()
+
+        elif scelta == 'A':
+            roof_open()
+
+        elif scelta == 'C':
+            roof_close()
+
+        elif scelta == 'M':
+            if not roof_verify_open.is_pressed:
+                print("⚠️  Il tetto non è aperto! Apri il tetto prima di testare i motori.")
+            else:
+                test_motor()
+
+        elif scelta == 'E':
             print("\nMonitor attivo — aziona manualmente le tende. Ctrl+C per tornare al menu.")
             try:
                 pause()
             except KeyboardInterrupt:
                 print("\nMonitor interrotto.")
-        elif scelta == '3':
-            test_roof()
+
         elif scelta == 'Q':
             print("Uscita.")
             break
+
         else:
             print("Scelta non valida.")
 
