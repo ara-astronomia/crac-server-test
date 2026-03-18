@@ -157,16 +157,21 @@ def test_motor():
 
         enable.on()
         if verso == 'f':
-            print(f"[{modulo}] Motore avanti...")
+            print(f"[{modulo}] Motore avanti. Premi H per fermare.")
             motor.forward()
         else:
-            print(f"[{modulo}] Motore indietro...")
+            print(f"[{modulo}] Motore indietro. Premi H per fermare.")
             motor.backward()
 
-        sleep(3)
-        motor.stop()
-        enable.off()
-        print(f"[{modulo}] Test completato.")
+        while True:
+            cmd = input("").upper()
+            if cmd == 'H':
+                motor.stop()
+                enable.off()
+                print(f"[{modulo}] Motore fermato.")
+                break
+            else:
+                print("Premi H per fermare il motore.")
 
 # =============================================================================
 # MENU PRINCIPALE
