@@ -142,10 +142,10 @@ def test_motor():
             continue
 
         if modulo == 'E':
-            enable = LED(PIN_MOTOR_E_ENABLE)
+            #enable = LED(PIN_MOTOR_E_ENABLE)
             motor  = Motor(PIN_MOTOR_E_FORWARD, PIN_MOTOR_E_BACKWARD, pwm=False)
         else:
-            enable = LED(PIN_MOTOR_W_ENABLE)
+            #enable = LED(PIN_MOTOR_W_ENABLE)
             motor  = Motor(PIN_MOTOR_W_FORWARD, PIN_MOTOR_W_BACKWARD, pwm=False)
 
         verso = input("Direzione (f=avanti, b=indietro, r=torna): ").lower()
@@ -155,14 +155,14 @@ def test_motor():
             print("Direzione non valida.")
             continue
 
-        enable.on()
+        #enable.on()
         if verso == 'f':
             motor.forward()
         else:
             motor.backward()
 
         # Debug stato pin
-        print(f"[{modulo}] enable.value: {enable.value}")
+        #print(f"[{modulo}] enable.value: {enable.value}")
         print(f"[{modulo}] motor.value: {motor.value}")
         print(f"[{modulo}] Motore avviato. Premi H per fermare.")
 
@@ -170,7 +170,7 @@ def test_motor():
             cmd = input("").upper()
             if cmd == 'H':
                 motor.stop()
-                enable.off()
+                #enable.off()
                 print(f"[{modulo}] Motore fermato.")
                 break
             else:
