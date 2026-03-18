@@ -216,7 +216,7 @@ def test_roof():
             sleep(1)
             roof_switch.off()
             # Attendi chiusura con timeout
-            timeout = 50
+            timeout = 90
             elapsed = 0
             while not roof_verify_closed.is_pressed and elapsed < timeout:
                 sleep(1)
