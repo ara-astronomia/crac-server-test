@@ -8,7 +8,7 @@ Sicurezze implementate:
 - Il tetto non può chiudersi se le tende non sono chiuse
 """
 
-from gpiozero import Button, LED, Motor, OutputDevice
+from gpiozero import Button, RotaryEncoder, Motor, OutputDevice
 from time import sleep
 from signal import pause
 import threading
@@ -63,10 +63,9 @@ roof_verify_open   = Button(PIN_ROOF_VERIFY_OPEN,   pull_up=True)
 roof_switch        = OutputDevice(PIN_ROOF_SWITCH)
 
 # Encoder
-clk_east = Button(PIN_CLK_EAST, pull_up=True)
-dt_east  = Button(PIN_DT_EAST,  pull_up=True)
-clk_west = Button(PIN_CLK_WEST, pull_up=True)
-dt_west  = Button(PIN_DT_WEST,  pull_up=True)
+encoder_E = RotaryEncoder(PIN_CLK_EAST, PIN_DT_EAST, max_steps=205)
+encoder_W = RotaryEncoder(PIN_CLK_WEST, PIN_DT_WEST, max_steps=205)
+
 
 # =============================================================================
 # CALLBACK FINECORSA
@@ -117,18 +116,13 @@ curtain_W_verify_open.when_released   = handle_W_open_released
 # CALLBACK ENCODER
 # =============================================================================
 def count_east():
-    if encoder_active['E']:
-        encoder_count['E'] += -1 if dt_east.is_pressed else 1
-        print(f"[EST]   Encoder: {encoder_count['E']}")
+    print(f"[EST]   Encoder: {encoder_E.steps}")
 
 def count_west():
-    print(f"[DEBUG-W] clk triggered, active={encoder_active['W']}, count={encoder_count['W']}")
-    if encoder_active['W']:
-        encoder_count['W'] += -1 if dt_west.is_pressed else 1
-        print(f"[OVEST] Encoder: {encoder_count['W']}")
-        
-clk_east.when_pressed = count_east
-clk_west.when_pressed = count_west
+    print(f"[OVEST] Encoder: {encoder_W.steps}")
+
+encoder_E.when_rotated = count_east
+encoder_W.when_rotated = count_west
 
 # =============================================================================
 # TEST MOTORI
