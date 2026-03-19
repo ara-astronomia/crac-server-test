@@ -6,6 +6,7 @@ Pin in modalità BCM, coerenti con config.ini del server.
 Sicurezze implementate:
 - Il tetto non può aprirsi se è già aperto
 - Il tetto non può chiudersi se le tende non sono chiuse
+- I motori delle tende non possono essere testati se il tetto è chiuso
 """
 
 from gpiozero import Button, RotaryEncoder, Motor, OutputDevice
@@ -17,7 +18,7 @@ import threading
 # PIN GPIO (BCM) — coerenti con config.ini
 # =============================================================================
 
-# Finecorsa
+# Finecorsa tende
 PIN_W_VERIFY_OPEN   = 19  # pin fisico 35 - finecorsa tenda Ovest aperta
 PIN_W_VERIFY_CLOSED = 26  # pin fisico 37 - finecorsa tenda Ovest chiusa
 PIN_E_VERIFY_OPEN   =  8  # pin fisico 15 - finecorsa tenda Est aperta
@@ -29,7 +30,7 @@ PIN_DT_EAST  = 23  # pin fisico 16
 PIN_CLK_WEST = 24  # pin fisico 18
 PIN_DT_WEST  = 25  # pin fisico 22
 
-# Motori
+# Motori tende
 PIN_MOTOR_E_FORWARD  = 13  # motorE_B
 PIN_MOTOR_E_BACKWARD =  6  # motorE_A
 PIN_MOTOR_E_ENABLE   =  5  # motorE_E
@@ -44,10 +45,10 @@ PIN_ROOF_VERIFY_OPEN   = 17  # pin fisico 7  - finecorsa tetto aperto
 PIN_ROOF_SWITCH        =  4  # pin fisico 13 - comando apertura/chiusura tetto
 
 # =============================================================================
-# STATO ENCODER
+# TIMEOUT TETTO
 # =============================================================================
-encoder_count = {'E': 0, 'W': 0}
-encoder_active = {'E': False, 'W': False}
+ROOF_TIMEOUT_OPEN  = 50   # secondi
+ROOF_TIMEOUT_CLOSE = 90   # secondi — include il ritardo del relay
 
 # =============================================================================
 # FINECORSA
@@ -66,38 +67,29 @@ roof_switch        = OutputDevice(PIN_ROOF_SWITCH)
 encoder_E = RotaryEncoder(PIN_CLK_EAST, PIN_DT_EAST, max_steps=205)
 encoder_W = RotaryEncoder(PIN_CLK_WEST, PIN_DT_WEST, max_steps=205)
 
-
 # =============================================================================
 # CALLBACK FINECORSA
 # =============================================================================
 def handle_E_closed_pressed():
     print("[EST] Finecorsa CHIUSURA premuto")
-    encoder_active['E'] = False
 
 def handle_E_closed_released():
-    print("[EST] Finecorsa CHIUSURA rilasciato → inizio conteggio encoder")
-    encoder_count['E'] = 0
-    encoder_active['E'] = True
+    print("[EST] Finecorsa CHIUSURA rilasciato")
 
 def handle_E_open_pressed():
-    print(f"[EST] Finecorsa APERTURA premuto → conteggio finale: {encoder_count['E']}")
-    encoder_active['E'] = False
+    print(f"[EST] Finecorsa APERTURA premuto — steps encoder: {encoder_E.steps}")
 
 def handle_E_open_released():
     print("[EST] Finecorsa APERTURA rilasciato")
 
 def handle_W_closed_pressed():
     print("[OVEST] Finecorsa CHIUSURA premuto")
-    encoder_active['W'] = False
 
 def handle_W_closed_released():
-    print("[OVEST] Finecorsa CHIUSURA rilasciato → inizio conteggio encoder")
-    encoder_count['W'] = 0
-    encoder_active['W'] = True
+    print("[OVEST] Finecorsa CHIUSURA rilasciato")
 
 def handle_W_open_pressed():
-    print(f"[OVEST] Finecorsa APERTURA premuto → conteggio finale: {encoder_count['W']}")
-    encoder_active['W'] = False
+    print(f"[OVEST] Finecorsa APERTURA premuto — steps encoder: {encoder_W.steps}")
 
 def handle_W_open_released():
     print("[OVEST] Finecorsa APERTURA rilasciato")
@@ -127,9 +119,29 @@ encoder_W.when_rotated = count_west
 # =============================================================================
 # TEST MOTORI
 # =============================================================================
+def wait_for_halt(motor, modulo):
+    """Thread separato per attendere H senza bloccare i print dell'encoder."""
+    while True:
+        try:
+            cmd = input("").strip().upper()
+            if cmd == 'H':
+                motor.stop()
+                motor.enable_device.off()
+                motor.close()
+                print(f"[{modulo}] Motore fermato.")
+                break
+        except UnicodeDecodeError:
+            print("Carattere non valido, premi H per fermare.")
+            continue
+
 def test_motor():
     while True:
-        modulo = input("\nSeleziona tenda (E=Est, W=Ovest, Q=esci): ").upper()
+        try:
+            modulo = input("\nSeleziona tenda (E=Est, W=Ovest, Q=esci): ").strip().upper()
+        except UnicodeDecodeError:
+            print("Carattere non valido, riprova.")
+            continue
+
         if modulo == 'Q':
             break
         if modulo not in ('E', 'W'):
@@ -151,7 +163,13 @@ def test_motor():
                 pwm=False
             )
 
-        verso = input("Direzione (f=avanti, b=indietro, r=torna): ").lower()
+        try:
+            verso = input("Direzione (f=avanti, b=indietro, r=torna): ").strip().lower()
+        except UnicodeDecodeError:
+            print("Carattere non valido, riprova.")
+            motor.close()
+            continue
+
         if verso == 'r':
             motor.close()
             continue
@@ -166,43 +184,23 @@ def test_motor():
         else:
             motor.backward()
 
-        # Debug stato pin
-        #print(f"[{modulo}] enable.value: {enable.value}")
         print(f"[{modulo}] motor.value: {motor.value}")
         print(f"[{modulo}] Motore avviato. Premi H per fermare.")
 
-        while True:
-            cmd = input("").upper()
-            if cmd == 'H':
-                motor.stop()
-                #enable.off()
-                print(f"[{modulo}] Motore fermato.")
-                break
-            else:
-                print("Premi H per fermare il motore.")
+        # Thread separato — i print dell'encoder continuano mentre aspetti H
+        halt_thread = threading.Thread(target=wait_for_halt, args=(motor, modulo), daemon=True)
+        halt_thread.start()
+        halt_thread.join()
 
 # =============================================================================
-# MENU PRINCIPALE
+# TETTO
 # =============================================================================
-ROOF_TIMEOUT_OPEN  = 50
-ROOF_TIMEOUT_CLOSE = 90
-
-def print_status():
-    print("\n=== STATO GPIO ===")
-    print(f"  [TETTO] chiuso  : {roof_verify_closed.is_pressed}")
-    print(f"  [TETTO] aperto  : {roof_verify_open.is_pressed}")
-    print(f"  [EST]   chiusa  : {curtain_E_verify_closed.is_pressed}")
-    print(f"  [EST]   aperta  : {curtain_E_verify_open.is_pressed}")
-    print(f"  [OVEST] chiusa  : {curtain_W_verify_closed.is_pressed}")
-    print(f"  [OVEST] aperta  : {curtain_W_verify_open.is_pressed}")
-    print("==================\n")
-
 def roof_open():
     if roof_verify_open.is_pressed:
         print("[TETTO] Già aperto.")
         return
     print("[TETTO] Apertura in corso...")
-    roof_switch.on()
+    roof_switch.on()  # resta ON finché non chiudiamo
     elapsed = 0
     while not roof_verify_open.is_pressed and elapsed < ROOF_TIMEOUT_OPEN:
         sleep(1)
@@ -221,7 +219,7 @@ def roof_close():
         print("[TETTO] ⚠️  BLOCCO — tende non chiuse! Impossibile chiudere il tetto.")
         return
     print("[TETTO] Chiusura in corso...")
-    roof_switch.off()
+    roof_switch.off()  # OFF → parte il delay → tetto si chiude
     elapsed = 0
     while not roof_verify_closed.is_pressed and elapsed < ROOF_TIMEOUT_CLOSE:
         sleep(1)
@@ -232,6 +230,24 @@ def roof_close():
     else:
         print("[TETTO] ✗ TIMEOUT — tetto non ha raggiunto la posizione chiusa!")
 
+# =============================================================================
+# STATO GPIO
+# =============================================================================
+def print_status():
+    print("\n=== STATO GPIO ===")
+    print(f"  [TETTO] chiuso  : {roof_verify_closed.is_pressed}")
+    print(f"  [TETTO] aperto  : {roof_verify_open.is_pressed}")
+    print(f"  [EST]   chiusa  : {curtain_E_verify_closed.is_pressed}")
+    print(f"  [EST]   aperta  : {curtain_E_verify_open.is_pressed}")
+    print(f"  [EST]   encoder : {encoder_E.steps}")
+    print(f"  [OVEST] chiusa  : {curtain_W_verify_closed.is_pressed}")
+    print(f"  [OVEST] aperta  : {curtain_W_verify_open.is_pressed}")
+    print(f"  [OVEST] encoder : {encoder_W.steps}")
+    print("==================\n")
+
+# =============================================================================
+# MENU PRINCIPALE
+# =============================================================================
 def main():
     print_status()
     while True:
@@ -242,34 +258,33 @@ def main():
         print("  M - Test motore tenda  [tetto deve essere aperto]")
         print("  E - Monitor encoder e finecorsa  [Ctrl+C per tornare]")
         print("  Q - Esci")
-        scelta = input("\nScelta: ").upper()
+
+        try:
+            scelta = input("\nScelta: ").strip().upper()
+        except UnicodeDecodeError:
+            print("Carattere non valido, riprova.")
+            continue
 
         if scelta == 'S':
             print_status()
-
         elif scelta == 'A':
             roof_open()
-
         elif scelta == 'C':
             roof_close()
-
         elif scelta == 'M':
             if not roof_verify_open.is_pressed:
                 print("⚠️  Il tetto non è aperto! Apri il tetto prima di testare i motori.")
             else:
                 test_motor()
-
         elif scelta == 'E':
             print("\nMonitor attivo — aziona manualmente le tende. Ctrl+C per tornare al menu.")
             try:
                 pause()
             except KeyboardInterrupt:
                 print("\nMonitor interrotto.")
-
         elif scelta == 'Q':
             print("Uscita.")
             break
-
         else:
             print("Scelta non valida.")
 
