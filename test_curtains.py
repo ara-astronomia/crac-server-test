@@ -53,9 +53,9 @@ encoder_active = {'E': False, 'W': False}
 # FINECORSA
 # =============================================================================
 curtain_W_verify_open   = Button(PIN_W_VERIFY_OPEN,   pull_up=True)
-curtain_W_verify_closed = Button(PIN_W_VERIFY_CLOSED, pull_up=True)
+curtain_W_verify_closed = Button(PIN_W_VERIFY_CLOSED, pull_up=True, bounce_time=0.1)
 curtain_E_verify_open   = Button(PIN_E_VERIFY_OPEN,   pull_up=True)
-curtain_E_verify_closed = Button(PIN_E_VERIFY_CLOSED, pull_up=True)
+curtain_E_verify_closed = Button(PIN_E_VERIFY_CLOSED, pull_up=True, bounce_time=0.1)
 
 # Tetto
 roof_verify_closed = Button(PIN_ROOF_VERIFY_CLOSED, pull_up=True)
