@@ -33,7 +33,7 @@ PIN_DT_WEST  = 25  # pin fisico 22
 # Motori tende
 PIN_MOTOR_E_FORWARD  = 13  # motorE_B
 PIN_MOTOR_E_BACKWARD =  6  # motorE_A
-PIN_MOTOR_E_ENABLE   =  5  # motorE_E
+PIN_MOTOR_E_ENABLE   =  16  # motorE_E
 
 PIN_MOTOR_W_FORWARD  = 21  # motorW_B
 PIN_MOTOR_W_BACKWARD = 20  # motorW_A
