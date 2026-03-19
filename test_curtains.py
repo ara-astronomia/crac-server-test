@@ -179,6 +179,7 @@ def test_motor():
             continue
 
         motor.enable_device.on()
+        print(f"[{modulo}] enable_device.value: {motor.enable_device.value}")
         if verso == 'f':
             motor.forward()
         else:
