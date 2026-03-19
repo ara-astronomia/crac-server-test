@@ -122,6 +122,7 @@ def count_east():
         print(f"[EST]   Encoder: {encoder_count['E']}")
 
 def count_west():
+    print(f"[DEBUG] clk_west triggered, encoder_active={encoder_active['W']}")
     if encoder_active['W']:
         encoder_count['W'] += -1 if dt_west.is_pressed else 1
         print(f"[OVEST] Encoder: {encoder_count['W']}")
